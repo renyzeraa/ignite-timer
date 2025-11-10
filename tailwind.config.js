@@ -24,6 +24,9 @@ export default {
         'red-700': '#7A1921',
 
         'yellow-500': '#FBA94C',
+      },
+      fontFamily: {
+        'roboto-mono': ['"Roboto Mono"', 'monospace'],
       }
     },
   },
