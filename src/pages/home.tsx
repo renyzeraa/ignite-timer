@@ -2,6 +2,8 @@ import { Play } from "phosphor-react"
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import z from "zod"
+import { useEffect, useState } from "react"
+import { differenceInSeconds } from "date-fns"
 
 const newCycleFormValidatorSchema = z.object({
     task: z.string().min(1, 'Informe a tarefa'),
@@ -10,7 +12,16 @@ const newCycleFormValidatorSchema = z.object({
 
 type NewCycleFormData = z.infer<typeof newCycleFormValidatorSchema>
 
+interface Cycle extends NewCycleFormData {
+    id: string
+    startDate: Date
+}
+
 export function Home() {
+    const [cycles, setCycles] = useState<Cycle[]>([])
+    const [activeCycleId, setActiveCycleId] = useState<string | null>(null)
+    const [amountSecondsPassed, setAmountSecondsPassed] = useState(0)
+
     const { register, handleSubmit, watch, reset } = useForm({
         resolver: zodResolver(newCycleFormValidatorSchema),
         defaultValues: {
@@ -19,10 +30,56 @@ export function Home() {
         }
     })
 
-    function handleCreateNewCycle(data: NewCycleFormData) {
-        console.log(data)
+    const activeCycle = cycles.find(cycle => cycle.id === activeCycleId)
+
+    useEffect(() => {
+        let interval: number
+
+        if (activeCycle) {
+            interval = setInterval(() => {
+                setAmountSecondsPassed(
+                    differenceInSeconds(new Date(), activeCycle.startDate),
+                )
+            }, 1000)
+        }
+
+        return () => {
+            clearInterval(interval)
+        }
+    }, [activeCycle])
+
+    function handleCreateNewCycle({ minutesAmount, task }: NewCycleFormData) {
+        setAmountSecondsPassed(0)
+        const id = String(new Date().getTime())
+        const newCycle = {
+            id,
+            task,
+            minutesAmount,
+            startDate: new Date()
+        }
+        setCycles((state) => [
+            ...state,
+            newCycle
+        ])
+        setActiveCycleId(id)
         reset()
     }
+
+
+    const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+    const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
+
+    const minutesAmount = Math.floor(currentSeconds / 60)
+    const secondsAmount = currentSeconds % 60
+
+    const minutes = String(minutesAmount).padStart(2, '0')
+    const seconds = String(secondsAmount).padStart(2, '0')
+
+    useEffect(() => {
+        if (activeCycle) {
+            document.title = `${minutes}:${seconds}`
+        }
+    }, [minutes, seconds, activeCycle])
 
     const isSubmitDisabled = !watch('task')
 
@@ -62,11 +119,11 @@ export function Home() {
                     <span>minutos.</span>
                 </div>
                 <div className="text-[10rem] leading-[8rem] text-gray-100 flex gap-4 font-roboto-mono font-bold">
-                    <span className="bg-gray-700 rounded-lg py-8 px-4">0</span>
-                    <span className="bg-gray-700 rounded-lg py-8 px-4">0</span>
+                    <span className="bg-gray-700 rounded-lg py-8 px-4">{minutes[0]}</span>
+                    <span className="bg-gray-700 rounded-lg py-8 px-4">{minutes[1]}</span>
                     <span className="py-8 text-green-500 w-16 overflow-hidden flex justify-center">:</span>
-                    <span className="bg-gray-700 rounded-lg py-8 px-4">0</span>
-                    <span className="bg-gray-700 rounded-lg py-8 px-4">0</span>
+                    <span className="bg-gray-700 rounded-lg py-8 px-4">{seconds[0]}</span>
+                    <span className="bg-gray-700 rounded-lg py-8 px-4">{seconds[1]}</span>
                 </div>
 
                 <button
