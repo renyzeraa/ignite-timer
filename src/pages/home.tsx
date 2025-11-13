@@ -1,4 +1,4 @@
-import { Play } from "phosphor-react"
+import { HandPalm, Play } from "phosphor-react"
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import z from "zod"
@@ -15,6 +15,8 @@ type NewCycleFormData = z.infer<typeof newCycleFormValidatorSchema>
 interface Cycle extends NewCycleFormData {
     id: string
     startDate: Date
+    interruptedDate?: Date
+    finishedDate?: Date
 }
 
 export function Home() {
@@ -31,22 +33,41 @@ export function Home() {
     })
 
     const activeCycle = cycles.find(cycle => cycle.id === activeCycleId)
+    const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
 
     useEffect(() => {
         let interval: number
 
         if (activeCycle) {
             interval = setInterval(() => {
-                setAmountSecondsPassed(
-                    differenceInSeconds(new Date(), activeCycle.startDate),
+                const secondsDifference = differenceInSeconds(
+                    new Date(),
+                    activeCycle.startDate,
                 )
+
+                if (secondsDifference >= totalSeconds) {
+                    setCycles((state) =>
+                        state.map((cycle) => {
+                            if (cycle.id === activeCycleId) {
+                                return { ...cycle, finishedDate: new Date() }
+                            } else {
+                                return cycle
+                            }
+                        }),
+                    )
+
+                    setAmountSecondsPassed(totalSeconds)
+                    clearInterval(interval)
+                } else {
+                    setAmountSecondsPassed(secondsDifference)
+                }
             }, 1000)
         }
 
         return () => {
             clearInterval(interval)
         }
-    }, [activeCycle])
+    }, [activeCycle, totalSeconds, activeCycleId])
 
     function handleCreateNewCycle({ minutesAmount, task }: NewCycleFormData) {
         setAmountSecondsPassed(0)
@@ -65,8 +86,20 @@ export function Home() {
         reset()
     }
 
+    function markCurrentCycleAsFinished() {
+        setCycles((state) =>
+            state.map((cycle) => {
+                if (cycle.id === activeCycleId) {
+                    return { ...cycle, interruptedDate: new Date() }
+                } else {
+                    return cycle
+                }
+            }),
+        )
+        setActiveCycleId(null)
+    }
 
-    const totalSeconds = activeCycle ? activeCycle.minutesAmount * 60 : 0
+
     const currentSeconds = activeCycle ? totalSeconds - amountSecondsPassed : 0
 
     const minutesAmount = Math.floor(currentSeconds / 60)
@@ -78,6 +111,9 @@ export function Home() {
     useEffect(() => {
         if (activeCycle) {
             document.title = `${minutes}:${seconds}`
+        }
+        else {
+            document.title = 'Ignite Timer'
         }
     }, [minutes, seconds, activeCycle])
 
@@ -93,7 +129,8 @@ export function Home() {
                         list="task-suggestions"
                         id="task"
                         placeholder="Dê um nome ao seu projeto"
-                        className="bg-transparent h-10 border-b-2 border-solid border-b-gray-500 font-bold text-lg text-gray-100 px-2 flex-1 placeholder:text-gray-500 focus:shadow-none focus:border-b-green-500"
+                        className="bg-transparent h-10 border-b-2 border-solid border-b-gray-500 font-bold text-lg text-gray-100 px-2 flex-1 placeholder:text-gray-500 focus:shadow-none focus:border-b-green-500 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={!!activeCycle}
                         {...register('task')}
                     />
 
@@ -112,7 +149,8 @@ export function Home() {
                         step={5}
                         id="minutesAmount"
                         placeholder="00"
-                        className="bg-transparent h-10 border-b-2 border-solid border-b-gray-500 font-bold text-lg text-gray-100 px-2 w-16 placeholder:text-gray-500 focus:shadow-none focus:border-b-green-500"
+                        className="bg-transparent h-10 border-b-2 border-solid border-b-gray-500 font-bold text-lg text-gray-100 px-2 w-16 placeholder:text-gray-500 focus:shadow-none focus:border-b-green-500 disabled:cursor-not-allowed disabled:opacity-70"
+                        disabled={!!activeCycle}
                         {...register('minutesAmount', { valueAsNumber: true, max: 60, min: 5 })}
                     />
 
@@ -125,14 +163,23 @@ export function Home() {
                     <span className="bg-gray-700 rounded-lg py-8 px-4">{seconds[0]}</span>
                     <span className="bg-gray-700 rounded-lg py-8 px-4">{seconds[1]}</span>
                 </div>
-
-                <button
-                    type="submit"
-                    className="w-full border-none rounded-lg p-4 flex justify-center items-center font-bold gap-2 cursor-pointer bg-green-500 disabled:hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-70 text-gray-100 hover:bg-green-700 transition-colors"
-                    disabled={isSubmitDisabled}
-                >
-                    <Play size={24} /> Começar
-                </button>
+                {activeCycle ?
+                    <button
+                        type="button"
+                        className="w-full border-none rounded-lg p-4 flex justify-center items-center font-bold gap-2 cursor-pointer bg-red-500 disabled:hover:bg-red-500 text-gray-100 hover:bg-red-700 transition-colors focus:border-none focus:shadow-none"
+                        onClick={markCurrentCycleAsFinished}
+                    >
+                        <HandPalm size={24} /> Interromper
+                    </button>
+                    :
+                    <button
+                        type="submit"
+                        className="w-full border-none rounded-lg p-4 flex justify-center items-center font-bold gap-2 cursor-pointer bg-green-500 disabled:hover:bg-green-500 disabled:cursor-not-allowed disabled:opacity-70 text-gray-100 hover:bg-green-700 transition-colors"
+                        disabled={isSubmitDisabled}
+                    >
+                        <Play size={24} /> Começar
+                    </button>
+                }
             </form>
         </div>
     )
