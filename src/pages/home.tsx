@@ -1,25 +1,24 @@
 import { HandPalm, Play } from "phosphor-react"
 import { NewCycleForm } from "../components/new-cycle-form"
 import { CountdownUseState } from "../state/countdown"
-import type { Cycle } from "../@types/global"
 import { CycleUseState } from "../state/cycle"
 import { newCycleFormValidatorSchema, type NewCycleFormData } from "../schemas/new-cycle-form-validator"
 import { Countdown } from "../components/countdown"
 import { useShallow } from "zustand/shallow"
 import { FormProvider, useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { useEffect } from "react"
 
 export function Home() {
     const { setAmountSecondsPassed } = CountdownUseState(useShallow(state => ({
         setAmountSecondsPassed: state.setAmountSecondsPassed
     })))
 
-    const { getActiveCycle, setCycles, cycles, activeCycleId, setActiveCycleId } = CycleUseState(useShallow(state => ({
+    const { getActiveCycle, markCurrentCycleAsInterrupted, createNewCycle, cycles } = CycleUseState(useShallow(state => ({
         getActiveCycle: state.getActiveCycle,
-        setCycles: state.setCycles,
-        cycles: state.cycles,
-        activeCycleId: state.activeCycleId,
-        setActiveCycleId: state.setActiveCycleId
+        markCurrentCycleAsInterrupted: state.markCurrentCycleAsInterrupted,
+        createNewCycle: state.createNewCycle,
+        cycles: state.cycles
     })))
     const activeCycle = getActiveCycle()
 
@@ -34,35 +33,18 @@ export function Home() {
 
     function handleCreateNewCycle({ minutesAmount, task }: NewCycleFormData) {
         setAmountSecondsPassed(0)
-        const id = String(new Date().getTime())
-        const newCycle: Cycle = {
-            id,
-            task,
-            minutesAmount,
-            startDate: new Date()
-        }
-        setCycles([
-            ...cycles,
-            newCycle
-        ])
-        setActiveCycleId(id)
+        createNewCycle(task, minutesAmount)
         reset()
     }
 
-    function markCurrentCycleAsInterrupted() {
-        setCycles(
-            cycles.map((cycle) => {
-                if (cycle.id === activeCycleId) {
-                    return { ...cycle, interruptedDate: new Date() }
-                } else {
-                    return cycle
-                }
-            }),
-        )
-        setActiveCycleId(null)
-    }
-
     const isSubmitDisabled = !watch('task')
+
+    useEffect(() => {
+        if (cycles.length) {
+            const cyclesJson = JSON.stringify(cycles)
+            localStorage.setItem('@ignite-timer:cycles-state', cyclesJson)
+        }
+    }, [cycles])
 
     return (
         <div className="flex-1 flex flex-col items-center justify-center">

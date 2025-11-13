@@ -2,6 +2,7 @@ import { useShallow } from "zustand/shallow"
 import { CycleUseState } from "../state/cycle"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { useEffect } from "react"
 
 export function History() {
     const { cycles } = CycleUseState(useShallow(state => ({
@@ -19,6 +20,11 @@ export function History() {
         interrupted: 'Interrompido',
         inProgress: 'Em andamento',
     }
+
+    useEffect(() => {
+        const cyclesJson = localStorage.getItem('@ignite-timer:cycles-state') || '[]'
+        CycleUseState.setState({ cycles: JSON.parse(cyclesJson) })
+    }, [])
 
     return (
         <main className="flex-1 p-14 flex flex-col">
