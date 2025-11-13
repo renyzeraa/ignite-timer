@@ -21,7 +21,7 @@ export const CycleUseState = create<CycleState>((set, get) => ({
     },
     getActiveCycle: () => get()?.cycles.find(cycle => cycle.id === get().activeCycleId),
     markCurrentCycleAsFinished: () => {
-        const { cycles, activeCycleId } = get()
+        const { cycles, activeCycleId, setActiveCycleId } = get()
         set({
             cycles: cycles.map((cycle) => {
                 if (cycle.id === activeCycleId) {
@@ -31,6 +31,6 @@ export const CycleUseState = create<CycleState>((set, get) => ({
                 }
             })
         })
-
+        setActiveCycleId(null)
     }
 }))

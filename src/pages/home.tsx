@@ -49,7 +49,7 @@ export function Home() {
         reset()
     }
 
-    function markCurrentCycleAsFinished() {
+    function markCurrentCycleAsInterrupted() {
         setCycles(
             cycles.map((cycle) => {
                 if (cycle.id === activeCycleId) {
@@ -75,7 +75,7 @@ export function Home() {
                     <button
                         type="button"
                         className="w-full border-none rounded-lg p-4 flex justify-center items-center font-bold gap-2 cursor-pointer bg-red-500 disabled:hover:bg-red-500 text-gray-100 hover:bg-red-700 transition-colors focus:border-none focus:shadow-none"
-                        onClick={markCurrentCycleAsFinished}
+                        onClick={markCurrentCycleAsInterrupted}
                     >
                         <HandPalm size={24} /> Interromper
                     </button>
